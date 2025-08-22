@@ -1,0 +1,13 @@
+with-expecter: true
+filename: "{{.InterfaceNameSnake}}.go"
+outpkg: "mock{{.PackageName}}"
+mockname: "{{.InterfaceName}}"
+dir: internal/mocks/{{replaceAll .InterfaceDirRelative "internal" ""}}
+packages:
+  order_service/internal/api:
+    interfaces:
+      Service:
+  order_service/internal/service:
+    interfaces:
+      Repository:
+      Cache:

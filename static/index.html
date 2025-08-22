@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Order Service - Поиск заказов</title>
+    <link href="/static/style.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🏪 Order Service</h1>
+        <p>Получение информации о заказах</p>
+    </header>
+
+    <main>
+        <div class="search-section">
+            <h2>🔍 Поиск заказа</h2>
+            <form id="orderForm">
+                <div class="input-group">
+                    <label for="orderUid">ID заказа:</label>
+                    <input
+                            id="orderUid"
+                            name="orderUid"
+                            placeholder="Введите order_uid (например: b563feb7b2b84b6test)"
+                            required
+                            type="text"
+                    >
+                    <button id="getOrderBtn" type="button">Получить заказ</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="result-section">
+            <h2>📋 Результат</h2>
+            <div class="loading hidden" id="loading">
+                <div class="spinner"></div>
+                <p>Загрузка...</p>
+            </div>
+            <div class="error hidden" id="error"></div>
+            <div class="order-result hidden" id="orderResult"></div>
+        </div>
+    </main>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>

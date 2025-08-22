@@ -1,0 +1,17 @@
+addr: "localhost:8081"
+
+db_url: "postgres://postgres:postgres@localhost:5433/order_db?sslmode=disable"
+
+brokers:
+  - "localhost:9094"
+  - "localhost:9095"
+  - "localhost:9096"
+
+topics:
+  - "wb-orders"
+
+group_id: "order-service-group-local"
+
+limit: 100
+capacity: 1000
+ttl: 5m
