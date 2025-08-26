@@ -97,7 +97,7 @@ type itemResponse struct {
 	Status      string    `json:"status"`
 }
 
-type orderResponse struct {
+type OrderResponse struct {
 	ID                uuid.UUID        `json:"id"`
 	TrackNumber       string           `json:"track_number"`
 	Entry             string           `json:"entry"`
@@ -112,8 +112,8 @@ type orderResponse struct {
 	DateCreated       time.Time        `json:"date_created"`
 }
 
-func (a *API) orderFromModel(order model.Order) orderResponse {
-	return orderResponse{
+func (a *API) orderFromModel(order model.Order) OrderResponse {
+	return OrderResponse{
 		ID:                order.ID,
 		TrackNumber:       order.TrackNumber,
 		Entry:             order.Entry,
