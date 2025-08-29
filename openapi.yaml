@@ -1,0 +1,398 @@
+openapi: 3.0.3
+info:
+  title: Order Service API
+  description: |
+    Микросервис для обработки и получения информации о заказах.
+    
+    ## Особенности:
+    - Получение информации о заказах по ID
+    - Кэширование для высокой производительности
+    - Интеграция с Kafka для получения заказов
+    - Web интерфейс для просмотра заказов
+    
+    ## Статусы ответов:
+    - `200 OK` - Успешный запрос
+    - `400 Bad Request` - Некорректный запрос
+    - `404 Not Found` - Заказ не найден
+    - `500 Internal Server Error` - Внутренняя ошибка сервера
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8081
+    description: Локальный сервер для разработки
+
+paths:
+  /:
+    get:
+      summary: Главная страница
+      description: |
+        Отдает Web интерфейс для просмотра заказов.
+        Содержит форму поиска заказа по ID.
+      operationId: getHomePage
+      responses:
+        '200':
+          description: HTML страница с Web интерфейсом
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /order/{id}:
+    get:
+      summary: Получение информации о заказе
+      description: |
+        Получает полную информацию о заказе по его уникальному идентификатору.
+        
+        ## Логика работы:
+        1. Сначала проверяется кэш
+        2. Если нет в кэше - запрашивается из БД
+        3. Результат кэшируется для последующих запросов
+        
+        ## Идемпотентность:
+        - Повторные запросы с тем же ID возвращают тот же результат
+        - Безопасен для частых вызовов
+      operationId: getOrderById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: |
+            Уникальный идентификатор заказа (UUID).
+            
+            Пример: `b563feb7b2b84b6test`
+          schema:
+            type: string
+            format: uuid
+            example: "b563feb7b2b84b6test"
+      responses:
+        '200':
+          description: Информация о заказе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+              examples:
+                order_example:
+                  summary: Пример заказа Wildberries
+                  value:
+                    id: "b563feb7b2b84b6test"
+                    track_number: "WBILMTESTTRACK"
+                    entry: "WBIL"
+                    delivery:
+                      name: "Test Testov"
+                      phone: "+9720000000"
+                      zip: "2639809"
+                      city: "Kiryat Mozkin"
+                      address: "Ploshad Mira 15"
+                      region: "Kraiot"
+                      email: "test@gmail.com"
+                    payment:
+                      transaction: "b563feb7b2b84b6test"
+                      request_id: ""
+                      currency: "USD"
+                      provider: "wbpay"
+                      amount: 1817
+                      payment_dt: 1637907727
+                      bank: "alpha"
+                      delivery_cost: 1500
+                      goods_total: 317
+                      custom_fee: 0
+                    items:
+                      - chrt_id: 9934930
+                        track_number: "WBILMTESTTRACK"
+                        price: 453
+                        rid: "ab4219087a764ae0btest"
+                        name: "Mascaras"
+                        sale: 30
+                        size: "0"
+                        total_price: 317
+                        nm_id: "2389212"
+                        brand: "Vivienne Sabo"
+                        status: "202"
+                    locale: "en"
+                    internal_signature: ""
+                    customer_id: "test"
+                    delivery_service: "meest"
+                    sm_id: 99
+                    date_created: "2021-11-26T06:22:19Z"
+        '400':
+          description: Некорректный формат ID заказа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                bad_request:
+                  value:
+                    reason: "invalid request format or params"
+        '404':
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  value:
+                    reason: "order not found"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    OrderResponse:
+      type: object
+      required:
+        - order_uid
+        - track_number
+        - entry
+        - delivery
+        - payment
+        - items
+        - locale
+        - customer_id
+        - delivery_service
+        - sm_id
+        - date_created
+      properties:
+        order_uid:
+          type: string
+          format: uuid
+          description: Внутренний ID заказа в системе
+          example: "b563feb7b2b84b6test"
+        track_number:
+          type: string
+          description: Номер трекинга заказа
+          example: "WBILMTESTTRACK"
+        entry:
+          type: string
+          description: Точка входа заказа
+          example: "WBIL"
+        delivery:
+          $ref: '#/components/schemas/DeliveryResponse'
+        payment:
+          $ref: '#/components/schemas/PaymentResponse'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemResponse'
+          description: Список товаров в заказе
+        locale:
+          type: string
+          description: Язык
+          example: "en"
+        internal_signature:
+          type: string
+          description: Внутренняя подпись заказа
+          example: ""
+        customer_id:
+          type: string
+          format: uuid
+          description: ID покупателя
+          example: "test"
+        delivery_service:
+          type: string
+          description: Служба доставки
+          example: "meest"
+        sm_id:
+          type: integer
+          format: int64
+          description: ID службы сообщений
+          example: 99
+        date_created:
+          type: string
+          format: date-time
+          description: Дата создания заказа
+          example: "2021-11-26T06:22:19Z"
+
+    DeliveryResponse:
+      type: object
+      required:
+        - name
+        - phone
+        - zip
+        - city
+        - address
+        - region
+        - email
+      properties:
+        name:
+          type: string
+          description: Имя получателя
+          example: "Test Testov"
+        phone:
+          type: string
+          description: Телефон получателя
+          example: "+9720000000"
+        zip:
+          type: string
+          description: Почтовый индекс
+          example: "2639809"
+        city:
+          type: string
+          description: Город
+          example: "Kiryat Mozkin"
+        address:
+          type: string
+          description: Адрес доставки
+          example: "Ploshad Mira 15"
+        region:
+          type: string
+          description: Регион
+          example: "Kraiot"
+        email:
+          type: string
+          format: email
+          description: Email получателя
+          example: "test@gmail.com"
+
+    PaymentResponse:
+      type: object
+      required:
+        - transaction
+        - currency
+        - provider
+        - amount
+        - payment_dt
+        - bank
+        - delivery_cost
+        - goods_total
+        - custom_fee
+      properties:
+        transaction:
+          type: string
+          format: uuid
+          description: ID транзакции
+          example: "b563feb7b2b84b6test"
+        request_id:
+          type: string
+          format: uuid
+          description: ID запроса
+          example: ""
+        currency:
+          type: string
+          description: Валюта оплаты
+          example: "USD"
+        provider:
+          type: string
+          description: Провайдер оплаты
+          example: "wbpay"
+        amount:
+          type: integer
+          format: int64
+          description: Общая сумма оплаты
+          example: 1817
+        payment_dt:
+          type: integer
+          format: int64
+          description: Unix timestamp оплаты
+          example: 1637907727
+        bank:
+          type: string
+          description: Банк
+          example: "alpha"
+        delivery_cost:
+          type: integer
+          format: int64
+          description: Стоимость доставки
+          example: 1500
+        goods_total:
+          type: integer
+          format: int64
+          description: Сумма товаров
+          example: 317
+        custom_fee:
+          type: integer
+          format: int64
+          description: Комиссия
+          example: 0
+
+    ItemResponse:
+      type: object
+      required:
+        - chrt_id
+        - track_number
+        - price
+        - rid
+        - name
+        - sale
+        - size
+        - total_price
+        - nm_id
+        - brand
+        - status
+      properties:
+        chrt_id:
+          type: integer
+          format: int64
+          description: ID размера товара
+          example: 9934930
+        track_number:
+          type: string
+          description: Номер трекинга
+          example: "WBILMTESTTRACK"
+        price:
+          type: integer
+          format: int64
+          description: Цена товара
+          example: 453
+        rid:
+          type: string
+          format: uuid
+          description: ID позиции
+          example: "ab4219087a764ae0btest"
+        name:
+          type: string
+          description: Название товара
+          example: "Mascaras"
+        sale:
+          type: integer
+          format: int64
+          description: Скидка в процентах
+          example: 30
+        size:
+          type: string
+          description: Размер товара
+          example: "0"
+        total_price:
+          type: integer
+          format: int64
+          description: Итоговая цена с учетом скидки
+          example: 317
+        nm_id:
+          type: string
+          format: uuid
+          description: ID товара
+          example: "2389212"
+        brand:
+          type: string
+          description: Бренд
+          example: "Vivienne Sabo"
+        status:
+          type: string
+          description: Статус товара
+          example: "202"
+
+    Error:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Описание ошибки
+          example: "order not found"
+
+  responses:
+    InternalServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            internal_error:
+              value:
+                reason: "internal server error"
